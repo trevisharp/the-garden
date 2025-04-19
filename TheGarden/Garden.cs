@@ -29,6 +29,8 @@ public class Garden
 
     public void Run()
     {
+        var clk = new Clock();
+
         var fieldRender = render((vec4 clr, vec2 pos, val size) =>
         {
             zoom(size);
@@ -78,6 +80,23 @@ public class Garden
             (holdcx, holdcy) = pos;
         };
 
+        Window.OnKeyDown += (input, modifier) =>
+        {
+            if (input == Input.Space)
+            {
+                clk.ToogleFreeze();
+            }
+        };
+
+        Window.OnFrame += () =>
+        {
+            if (clk.Time < 0.1f)
+                return;
+            
+            RunGeneration();
+            clk.Reset();
+        };
+
         Window.OnRender += () =>
         {
             for (int y = 0; y < defaultSize; y++)
@@ -115,6 +134,35 @@ public class Garden
         Window.Open();
     }
 
+    void RunGeneration()
+    {
+        for (int j = 0; j < defaultSize; j++)
+        {
+            for (int i = 0; i < defaultSize; i++)
+            {
+                int index = defaultSize * j + i;
+                var id = board[index];
+                if (id == 0)
+                    continue;
+                
+                var individual = individuals[id];
+                individual.Paste();
+                var behaviour = individual.RunGeneration([ null, null, null, null ]);
+                individual.Copy();
+
+                if (behaviour == "REPRODUCE")
+                {
+                    AddApprox(individual.Info, individual.X, individual.Y);
+                }
+                else if (behaviour == "DIE")
+                {
+                    individuals.Remove(id);
+                    board[index] = 0;
+                }
+            }
+        }
+    }
+
     void Add(IndividualInfo info)
     {
         int x = Random.Shared.Next(defaultSize);
@@ -125,9 +173,50 @@ public class Garden
             x = Random.Shared.Next(defaultSize);
             y = Random.Shared.Next(defaultSize);
         }
+        
+        Add(info, x, y);
+    }
+
+    void Add(IndividualInfo info, int x, int y)
+    {
+        var id = nextId++;
+        var individual = info.Create();
+        individual.Copy();
+
+        individual.X = x;
+        individual.Y = y;
+
+        individuals.Add(id, individual);
+        board[defaultSize * y + x] = id;
+    }
+
+    void AddApprox(IndividualInfo info, int x, int y)
+    {
+        for (int k = 0; k < 121; k++)
+        {
+            int dx = Random.Shared.Next(11) - 5;
+            int dy = Random.Shared.Next(11) - 5;
+
+            var tx = dx + x;
+            var ty = dy + y;
+            if (tx < 0 || ty < 0 || tx >= defaultSize || ty >= defaultSize)
+                continue;
+
+            if (board[defaultSize * ty + tx] != 0)
+                continue;
+
+            x += dx;
+            y += dy;
+            break;
+        }
 
         var id = nextId++;
-        var individual = info.Create(x, y);
+        var individual = info.Create();
+        individual.Copy();
+
+        individual.X = x;
+        individual.Y = y;
+
         individuals.Add(id, individual);
         board[defaultSize * y + x] = id;
     }

@@ -6,6 +6,40 @@ namespace TheGarden.Core;
 
 public static class ReflectionHelper
 {
+    public static PropertyInfo? AsProperty(this string propName, Type type)
+    {
+        ArgumentNullException.ThrowIfNull(propName, nameof(propName));
+        ArgumentNullException.ThrowIfNull(type, nameof(type));
+        propName = propName.ToLower();
+        
+        var selectedType = 
+            from prop in type.GetProperties()
+            let name = prop.Name.ToLower()
+            let cost = LevenshteinDistance(name, propName)
+            where cost < 3
+            orderby cost
+            select prop;
+        
+        return selectedType.FirstOrDefault();
+    }
+    
+    public static MethodInfo? AsMethod(this string methodName, Type type)
+    {
+        ArgumentNullException.ThrowIfNull(methodName, nameof(methodName));
+        ArgumentNullException.ThrowIfNull(type, nameof(type));
+        methodName = methodName.ToLower();
+        
+        var selectedType = 
+            from method in type.GetMethods()
+            let name = method.Name.ToLower()
+            let cost = LevenshteinDistance(name, methodName)
+            where cost < 3
+            orderby cost
+            select method;
+        
+        return selectedType.FirstOrDefault();
+    }
+
     public static Type AsType(this string typeName)
     {
         ArgumentNullException.ThrowIfNull(typeName, nameof(typeName));

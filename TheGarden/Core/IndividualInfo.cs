@@ -10,19 +10,25 @@ public record IndividualInfo
     {
         Color = color;
         IndividualType = type;
-        OnGeneration = null!;
+        OnGeneration = "OnFrame".AsMethod(type);
+        X = "X".AsProperty(type);
+        Y = "Y".AsProperty(type);
+        Energy = "Energy".AsProperty(type);
     }
 
     public readonly Type IndividualType;
     public readonly Color Color;
-    public readonly MethodInfo OnGeneration;
+    public readonly MethodInfo? OnGeneration;
+    public readonly PropertyInfo? X;
+    public readonly PropertyInfo? Y;
+    public readonly PropertyInfo? Energy;
 
-    public Individual Create(int x, int y)
+    public Individual Create()
     {
         return new Individual {
-            Info = this,
-            X = x,
-            Y = y
+            Object = Activator.CreateInstance(IndividualType) 
+                ?? throw new Exception($"cannot create the type {IndividualType}"),
+            Info = this
         };
     }
 }
