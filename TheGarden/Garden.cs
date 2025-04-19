@@ -22,7 +22,7 @@ public class Garden
     public void Add(string typeName, Color color, int initialPopulation)
     {
         var type = typeName.AsType();
-        var info = new IndividualInfo(type, color);
+        var info = new IndividualInfo(type, color, typeName);
         for (int i = 0; i < initialPopulation; i++)
             Add(info);
     }
@@ -134,36 +134,13 @@ public class Garden
         Window.Open();
     }
 
-    void RunGeneration()
+    internal void Kill(Individual individual)
     {
-        for (int j = 0; j < defaultSize; j++)
-        {
-            for (int i = 0; i < defaultSize; i++)
-            {
-                int index = defaultSize * j + i;
-                var id = board[index];
-                if (id == 0)
-                    continue;
-                
-                var individual = individuals[id];
-                individual.Paste();
-                var behaviour = individual.RunGeneration([ null, null, null, null ]);
-                individual.Copy();
-
-                if (behaviour == "REPRODUCE")
-                {
-                    AddApprox(individual.Info, individual.X, individual.Y);
-                }
-                else if (behaviour == "DIE")
-                {
-                    individuals.Remove(id);
-                    board[index] = 0;
-                }
-            }
-        }
+        individuals.Remove(individual.Id);
+        board[individual.X + individual.Y * defaultSize] = 0;
     }
 
-    void Add(IndividualInfo info)
+    internal void Add(IndividualInfo info)
     {
         int x = Random.Shared.Next(defaultSize);
         int y = Random.Shared.Next(defaultSize);
@@ -177,12 +154,12 @@ public class Garden
         Add(info, x, y);
     }
 
-    void Add(IndividualInfo info, int x, int y)
+    internal void Add(IndividualInfo info, int x, int y)
     {
         var id = nextId++;
         var individual = info.Create();
-        individual.Copy();
 
+        individual.Id = id;
         individual.X = x;
         individual.Y = y;
 
@@ -190,7 +167,7 @@ public class Garden
         board[defaultSize * y + x] = id;
     }
 
-    void AddApprox(IndividualInfo info, int x, int y)
+    internal void AddApprox(IndividualInfo info, int x, int y)
     {
         for (int k = 0; k < 121; k++)
         {
@@ -210,14 +187,24 @@ public class Garden
             break;
         }
 
-        var id = nextId++;
-        var individual = info.Create();
-        individual.Copy();
+        Add(info, x, y);
+    }
 
-        individual.X = x;
-        individual.Y = y;
-
-        individuals.Add(id, individual);
-        board[defaultSize * y + x] = id;
+    void RunGeneration()
+    {
+        for (int j = 0; j < defaultSize; j++)
+        {
+            for (int i = 0; i < defaultSize; i++)
+            {
+                int index = defaultSize * j + i;
+                var id = board[index];
+                if (id == 0)
+                    continue;
+                
+                var individual = individuals[id];
+                var keeper = new GardenKeeper(this, individual);
+                individual.RunGeneration(keeper);
+            }
+        }
     }
 }
