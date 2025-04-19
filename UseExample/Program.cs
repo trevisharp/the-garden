@@ -8,14 +8,9 @@ garden.Run();
 
 public class Plant
 {
-    public int X { get; set; }
-    public int Y { get; set; }
     public int Energy { get; set; } = 20;
 
-    public string OnFrame(
-        string onLeft, string onRight,
-        string onTop, string onBot
-    )
+    public void Act(GardenKeeper gardenKeeper)
     {
         if (Random.Shared.Next(4) < 2)
             Energy += 10;
@@ -23,9 +18,7 @@ public class Plant
         if (Energy > 90)
         {
             Energy -= 50;
-            return "REPRODUCE";
+            gardenKeeper.ReproduceOnNeighborhood();
         }
-
-        return "WAIT";
     }
 }
