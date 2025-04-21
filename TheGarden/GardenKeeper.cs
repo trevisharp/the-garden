@@ -2,7 +2,7 @@ namespace TheGarden;
 
 using Core;
 
-public class GardenKeeper(Garden garden, Individual current)
+public class Gardenkeeper(Garden garden, Individual current)
 {
     readonly Garden garden = garden;
     readonly Individual individual = current;
@@ -13,16 +13,9 @@ public class GardenKeeper(Garden garden, Individual current)
     public int GetMyYPosition()
         => individual.Y;
     
-    public int SetMyXPosition(int x)
-        => individual.X = x;
-    
-    public int SetMyYPosition(int y)
-        => individual.Y = y;
-    
     public void Move(int dx, int dy)
     {
-        individual.X += dx;
-        individual.Y += dy;
+        garden.Move(individual, dx, dy);
     }
 
     public void KillMe()
@@ -30,12 +23,76 @@ public class GardenKeeper(Garden garden, Individual current)
         garden.Kill(individual);
     }
 
-    public void ReproduceOn5x5Neighborhood()
+    public bool KillNeighborhood(string entity, int vision = 5)
     {
-        garden.AddApprox(
+        return garden.KillNeighborhood(
+            entity,
+            individual,
+            vision
+        );
+    }
+
+    public void ReproduceOnNeighborhood(int size = 5)
+    {
+        garden.AddOnRegion(
             individual.Info,
             individual.X,
-            individual.Y
+            individual.Y,
+            size
         );
+    }
+
+    public int CountNeighborhood(string entity, int size = 5)
+    {
+        return garden.Count(
+            entity,
+            individual,
+            size
+        );
+    }
+
+    public void MoveToNext(string entity, int speed = 1, int vision = 5, int minDistance = 1)
+    {
+        var target = garden.GetBestNeighborhood(
+            entity,
+            individual,
+            vision
+        );
+        if (target is null)
+            return;
+        
+        var x = target.X;
+        var y = target.Y;
+        var dx = x - individual.X;
+        var dy = y - individual.Y;
+        int distance = int.Abs(dx) + int.Abs(dy);
+        
+        for (int i = 0; i < speed; i++)
+        {
+            if (distance <= minDistance)
+                break;
+            distance--;
+
+            if (dx is > 0)
+            {
+                Move(1, 0);
+                dx--;
+            }
+            else if (dx is < 0)
+            {
+                Move(-1, 0);
+                dx++;
+            }
+            else if (dy is > 0)
+            {
+                Move(0, 1);
+                dy--;
+            }
+            else if (dy is < 0)
+            {
+                Move(0, -1);
+                dy++;
+            }
+        }
     }
 }

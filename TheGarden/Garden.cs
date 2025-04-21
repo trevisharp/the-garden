@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Drawing;
 using System.Collections.Generic;
 
@@ -11,20 +12,25 @@ using Core;
 
 public class Garden
 {
-    int nextId = 1;
     const int defaultSize = 80;
-    readonly int[] board = new int[defaultSize * defaultSize];
-    readonly Dictionary<int, Individual> individuals = [];
+    readonly List<Individual>[] board;
     float camdx = 0;
     float camdy = 0;
     float camzoom = 20;
+
+    public Garden()
+    {
+        board = new List<Individual>[defaultSize * defaultSize];
+        for (int i = 0; i < board.Length; i++)
+            board[i] = [];
+    }
 
     public void Add(string typeName, Color color, int initialPopulation)
     {
         var type = typeName.AsType();
         var info = new IndividualInfo(type, color, typeName);
         for (int i = 0; i < initialPopulation; i++)
-            Add(info);
+            AddOnRandomPlance(info);
     }
 
     public void Run()
@@ -103,8 +109,8 @@ public class Garden
             {
                 for (int x = 0; x < defaultSize; x++)
                 {
-                    var id = board[defaultSize * y + x];
-                    if (id == 0)
+                    var list = board[defaultSize * y + x];
+                    if (list.Count == 0)
                     {
                         fieldRender(
                             vec(0f, .25f, 0f, 1f), 
@@ -115,7 +121,7 @@ public class Garden
                     }
                     else
                     {
-                        var individual = individuals[id];
+                        var individual = list[0];
                         fieldRender(
                             individual.Info.Color.R / 255f,
                             individual.Info.Color.G / 255f,
@@ -134,60 +140,106 @@ public class Garden
         Window.Open();
     }
 
-    internal void Kill(Individual individual)
+    internal void Move(Individual individual, int dx, int dy)
     {
-        individuals.Remove(individual.Id);
-        board[individual.X + individual.Y * defaultSize] = 0;
+        var x = individual.X;
+        var y = individual.Y;
+
+        var initial = x + defaultSize * y;
+        var initialList = board[initial];
+        initialList.Remove(individual);
+
+        var target = x + dx + defaultSize * (y + dy);
+        var targetList = board[target];
+        targetList.Add(individual);
+
+        individual.X += dx;
+        individual.Y += dy;
     }
 
-    internal void Add(IndividualInfo info)
+    internal void Kill(Individual individual)
+    {
+        board[individual.X + individual.Y * defaultSize].Remove(individual);
+    }
+
+    internal bool KillNeighborhood(string name, Individual individual, int radius)
+    {
+        var target = GetBestNeighborhood(name, individual, radius);
+        if (target is null)
+            return false;
+        
+        Kill(target);
+        return true;
+    }
+
+    internal void AddOnRandomPlance(IndividualInfo info)
     {
         int x = Random.Shared.Next(defaultSize);
         int y = Random.Shared.Next(defaultSize);
-
-        for (int k = 0; board[defaultSize * y + x] != 0 && k < board.Length; k++)
-        {
-            x = Random.Shared.Next(defaultSize);
-            y = Random.Shared.Next(defaultSize);
-        }
         
         Add(info, x, y);
     }
 
     internal void Add(IndividualInfo info, int x, int y)
     {
-        var id = nextId++;
         var individual = info.Create();
 
-        individual.Id = id;
         individual.X = x;
         individual.Y = y;
 
-        individuals.Add(id, individual);
-        board[defaultSize * y + x] = id;
+        board[defaultSize * y + x].Add(individual);
     }
 
-    internal void AddApprox(IndividualInfo info, int x, int y)
+    internal void AddOnRegion(IndividualInfo info, int x, int y, int radius)
     {
-        for (int k = 0; k < 121; k++)
+        var randomField = GetRegion(x, y, radius)
+            .OrderBy(x => Random.Shared.Next())
+            .FirstOrDefault();
+
+        Add(info, randomField.x, randomField.y);
+    }
+
+    internal Individual? GetBestNeighborhood(string name, Individual individual, int radius)
+    {
+        var query =
+            from ind in GetNeighborhood(individual, radius)
+            where ind.Info.Name == name
+            let dx = ind.X - individual.X
+            let dy = ind.Y - individual.Y
+            let distance = dx * dx + dy * dy
+            orderby distance ascending
+            select ind;
+        
+        return query.FirstOrDefault();
+    }
+
+    internal int Count(string name, Individual individual, int radius)
+    {
+        return GetNeighborhood(individual, radius)
+            .Count(t => t.Info.Name == name);
+    }
+
+    private IEnumerable<Individual> GetNeighborhood(Individual individual, int radius)
+    {
+        return GetRegion(individual.X, individual.Y, radius)
+            .SelectMany(t => t.individuals)
+            .Where(ind => ind != individual);
+    }
+
+    private IEnumerable<(int x, int y, List<Individual> individuals)> GetRegion(int x, int y, int radius)
+    {
+        int jmin = int.Max(0, y - radius),
+            jmax = int.Min(defaultSize, y + radius + 1),
+            imin = int.Max(0, x - radius),
+            imax = int.Min(defaultSize, x + radius + 1);
+
+        for (int j = jmin; j < jmax; j++)
         {
-            int dx = Random.Shared.Next(11) - 5;
-            int dy = Random.Shared.Next(11) - 5;
-
-            var tx = dx + x;
-            var ty = dy + y;
-            if (tx < 0 || ty < 0 || tx >= defaultSize || ty >= defaultSize)
-                continue;
-
-            if (board[defaultSize * ty + tx] != 0)
-                continue;
-
-            x += dx;
-            y += dy;
-            break;
+            for (int i = imin; i < imax; i++)
+            {
+                yield return (i, j, board[j * defaultSize + i]);
+            }
         }
-
-        Add(info, x, y);
     }
 
     void RunGeneration()
@@ -197,12 +249,12 @@ public class Garden
             for (int i = 0; i < defaultSize; i++)
             {
                 int index = defaultSize * j + i;
-                var id = board[index];
-                if (id == 0)
+                var list = board[index];
+                if (list.Count == 0)
                     continue;
                 
-                var individual = individuals[id];
-                var keeper = new GardenKeeper(this, individual);
+                var individual = list[0];
+                var keeper = new Gardenkeeper(this, individual);
                 individual.RunGeneration(keeper);
             }
         }
