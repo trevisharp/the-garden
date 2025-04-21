@@ -23,6 +23,16 @@ public class Gardenkeeper(Garden garden, Individual current)
         garden.Kill(individual);
     }
 
+    public void CreateNeighborhood(string entity, int vision = 5)
+    {
+        garden.AddOnRegion(
+            entity,
+            individual.X,
+            individual.Y,
+            vision
+        );
+    }
+
     public bool KillNeighborhood(string entity, int vision = 5)
     {
         return garden.KillNeighborhood(

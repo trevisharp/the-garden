@@ -5,21 +5,22 @@ using TheGarden;
 var garden = new Garden();
 garden.Add("plant", Color.LightGreen, 80);
 garden.Add("cow", Color.White, 30);
-garden.Add("wolf", Color.Gray, 6);
+garden.Add("wolf", Color.DarkRed, 8);
 garden.Run();
 
 public class Plant
 {
-    public int Energy { get; set; } = 20;
+    public float Energy { get; set; } = Random.Shared.Next(100);
 
     public void Act(Gardenkeeper keeper)
     {
-        Energy += 10 - 2 * keeper.CountNeighborhood("plant", 1);
+        var sumlight = 1 - 0.2f * keeper.CountNeighborhood("plant", 1);
+        Energy += sumlight * Random.Shared.NextSingle();
         
-        if (Energy > 90)
+        if (Energy > 60)
         {
-            Energy -= 50;
-            keeper.ReproduceOnNeighborhood(3);
+            Energy -= 40;
+            keeper.ReproduceOnNeighborhood(5);
         }
         
         if (Energy < 0)
@@ -31,41 +32,7 @@ public class Plant
 
 public class Cow
 {
-    public int Energy { get; set; } = 80;
-
-    public void Act(Gardenkeeper keeper)
-    {
-        Energy -= 5;
-
-        if (Energy < 0)
-        {
-            keeper.KillMe();
-        }
-
-        if (Energy > 90)
-        {
-            Energy -= 30;
-            keeper.ReproduceOnNeighborhood(1);
-        }
-
-        if (Energy is < 10 or > 40)
-            return;
-        
-        keeper.MoveToNext("plant");
-        Energy -= 2;
-        
-        if (keeper.CountNeighborhood("plant", 1) < 1)
-            return;
-        
-        var killed = keeper.KillNeighborhood("plant", 1);
-        if (killed)
-            Energy += 60;
-    }
-}
-
-public class Wolf
-{
-    public int Energy { get; set; } = 50;
+    public float Energy { get; set; } = 80;
 
     public void Act(Gardenkeeper keeper)
     {
@@ -74,25 +41,72 @@ public class Wolf
         if (Energy < 0)
         {
             keeper.KillMe();
+            keeper.CreateNeighborhood("plant", 3);
+            keeper.CreateNeighborhood("plant", 3);
+            keeper.CreateNeighborhood("plant", 3);
+            return;
         }
 
-        if (Energy > 90)
+        if (Energy < 60 && keeper.CountNeighborhood("plant", 1) > 0)
+        {
+            keeper.KillNeighborhood("plant", 1);
+            Energy += 30;
+            return;
+        }
+
+        if (Energy > 80)
         {
             Energy -= 30;
             keeper.ReproduceOnNeighborhood(1);
+            return;
         }
 
-        if (Energy is < 10 or > 40)
+        if (Energy > 40)
+        {
+            if (Random.Shared.Next(2) == 0)
+                return;
+            
+            keeper.Move(
+                Random.Shared.Next(3) - 1,
+                Random.Shared.Next(3) - 1
+            );
+            return;
+        }
+        
+        keeper.MoveToNext("plant");
+    }
+}
+
+public class Wolf
+{
+    public int Age { get; set; } = 0;
+    public float Energy { get; set; } = 50;
+
+    public void Act(Gardenkeeper keeper)
+    {
+        Age++;
+        Energy--;
+
+        if (Energy < 0 || Age == 400)
+        {
+            keeper.KillMe();
+            keeper.CreateNeighborhood("plant", 3);
+        }
+
+        if (Age == 200)
+        {
+            keeper.ReproduceOnNeighborhood(1);
+        }
+
+        if (Energy > 60)
             return;
         
-        keeper.MoveToNext("cow", 2, 10, 2);
-        Energy -= 2;
+        keeper.MoveToNext("cow", 1, 20);
         
-        if (keeper.CountNeighborhood("cow", 2) < 1)
+        if (keeper.CountNeighborhood("cow", 1) < 1)
             return;
         
-        var killed = keeper.KillNeighborhood("cow", 2);
-        if (killed)
-            Energy += 80;
+        keeper.KillNeighborhood("cow", 1);
+        Energy += 40;
     }
 }

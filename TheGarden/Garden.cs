@@ -14,12 +14,14 @@ public class Garden
 {
     const int defaultSize = 80;
     readonly List<Individual>[] board;
+    readonly List<IndividualInfo> infos;
     float camdx = 0;
     float camdy = 0;
     float camzoom = 20;
 
     public Garden()
     {
+        infos = [];
         board = new List<Individual>[defaultSize * defaultSize];
         for (int i = 0; i < board.Length; i++)
             board[i] = [];
@@ -29,6 +31,8 @@ public class Garden
     {
         var type = typeName.AsType();
         var info = new IndividualInfo(type, color, typeName);
+        infos.Add(info);
+
         for (int i = 0; i < initialPopulation; i++)
             AddOnRandomPlance(info);
     }
@@ -140,21 +144,31 @@ public class Garden
         Window.Open();
     }
 
+    internal void AddOnRegion(string typeName, int x, int y, int radius)
+    {
+        var info = infos.FirstOrDefault(i => i.Name == typeName);
+        if (info is null)
+            return;
+        
+        AddOnRegion(info, x, y, radius);
+    }
+
     internal void Move(Individual individual, int dx, int dy)
     {
         var x = individual.X;
         var y = individual.Y;
 
-        var initial = x + defaultSize * y;
-        var initialList = board[initial];
+        var tx = int.Clamp(x + dx, 0, defaultSize - 1);
+        var ty = int.Clamp(y + dy, 0, defaultSize - 1);
+
+        var initialList = board[x + defaultSize * y];
         initialList.Remove(individual);
 
-        var target = x + dx + defaultSize * (y + dy);
-        var targetList = board[target];
+        var targetList = board[tx + defaultSize * ty];
         targetList.Add(individual);
 
-        individual.X += dx;
-        individual.Y += dy;
+        individual.X = tx;
+        individual.Y = ty;
     }
 
     internal void Kill(Individual individual)
@@ -244,19 +258,13 @@ public class Garden
 
     void RunGeneration()
     {
-        for (int j = 0; j < defaultSize; j++)
+        var individuals = board
+            .SelectMany(x => x)
+            .ToArray();
+        foreach (var individual in individuals)
         {
-            for (int i = 0; i < defaultSize; i++)
-            {
-                int index = defaultSize * j + i;
-                var list = board[index];
-                if (list.Count == 0)
-                    continue;
-                
-                var individual = list[0];
-                var keeper = new Gardenkeeper(this, individual);
-                individual.RunGeneration(keeper);
-            }
+            var keeper = new Gardenkeeper(this, individual);
+            individual.RunGeneration(keeper);
         }
     }
 }
