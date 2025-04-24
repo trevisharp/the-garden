@@ -1,5 +1,6 @@
 namespace TheGarden;
 
+using System.Drawing;
 using Core;
 
 public class Gardenkeeper(Garden garden, Individual current)
@@ -13,6 +14,9 @@ public class Gardenkeeper(Garden garden, Individual current)
     public int GetMyYPosition()
         => individual.Y;
     
+    public void ChangeColor(Color color)
+        => individual.Color = color;
+    
     public void Move(int dx, int dy)
     {
         garden.Move(individual, dx, dy);
@@ -23,7 +27,7 @@ public class Gardenkeeper(Garden garden, Individual current)
         garden.Kill(individual);
     }
 
-    public void CreateNeighborhood(string entity, int vision = 5)
+    public void CreateEntityOnNeighborhood(string entity, int vision = 5)
     {
         garden.AddOnRegion(
             entity,
@@ -33,7 +37,7 @@ public class Gardenkeeper(Garden garden, Individual current)
         );
     }
 
-    public bool KillNeighborhood(string entity, int vision = 5)
+    public bool KillEntityOnNeighborhood(string entity, int vision = 5)
     {
         return garden.KillNeighborhood(
             entity,

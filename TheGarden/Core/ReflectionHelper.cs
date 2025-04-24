@@ -77,8 +77,7 @@ public static class ReflectionHelper
             {
                 var removeCost = dp[i - 1, j] + 1;
                 var insertCost = dp[i, j - 1] + 1;
-                var substuCost = dp[i - 1, j - 1] + 
-                    str1[i - 1] == str2[j - 1] ? 0 : 1;
+                var substuCost = dp[i - 1, j - 1] + (str1[i - 1] == str2[j - 1] ? 0 : 1);
 
                 dp[i, j] = int.Min(
                     int.Min(removeCost, insertCost),

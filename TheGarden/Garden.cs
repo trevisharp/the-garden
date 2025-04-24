@@ -17,7 +17,7 @@ public class Garden
     readonly List<IndividualInfo> infos;
     float camdx = 0;
     float camdy = 0;
-    float camzoom = 20;
+    float camzoom = 15;
 
     public Garden()
     {
@@ -27,14 +27,26 @@ public class Garden
             board[i] = [];
     }
 
-    public void Add(string typeName, Color color, int initialPopulation)
+    public void Add(string typeName, Color color, int x, int y)
     {
-        var type = typeName.AsType();
-        var info = new IndividualInfo(type, color, typeName);
-        infos.Add(info);
+        var info = GetInfo(typeName, color);
+        Add(info, x, y);
+    }
+
+    public void AddRandom(string typeName, Color color, int initialPopulation)
+    {
+        var info = GetInfo(typeName, color);
 
         for (int i = 0; i < initialPopulation; i++)
             AddOnRandomPlance(info);
+    }
+
+    public void AddFull(string typeName, Color color)
+    {
+        var info = GetInfo(typeName, color);
+
+        for (int i = 0; i < board.Length; i++)
+            Add(info, i % defaultSize, i / defaultSize);
     }
 
     public void Run()
@@ -90,6 +102,12 @@ public class Garden
             (holdcx, holdcy) = pos;
         };
 
+        Window.OnLoad += () =>
+        {
+            camdx = Window.Width / 2 - defaultSize * camzoom / 2;
+            camdy = Window.Height / 2 - defaultSize * camzoom / 2;
+        };
+
         Window.OnKeyDown += (input, modifier) =>
         {
             if (input == Input.Space)
@@ -127,9 +145,9 @@ public class Garden
                     {
                         var individual = list[0];
                         fieldRender(
-                            individual.Info.Color.R / 255f,
-                            individual.Info.Color.G / 255f,
-                            individual.Info.Color.B / 255f,
+                            individual.Color.R / 255f,
+                            individual.Color.G / 255f,
+                            individual.Color.B / 255f,
                             1f, 
                             camdx + camzoom * x,
                             camdy + camzoom * y,
@@ -233,6 +251,17 @@ public class Garden
             .Count(t => t.Info.Name == name);
     }
 
+    private IndividualInfo GetInfo(string typeName, Color color)
+    {
+        var match = infos.FirstOrDefault(i => i.Name == typeName);
+        if (match is not null)
+            return match;
+        
+        var type = typeName.AsType();
+        var info = new IndividualInfo(type, color, typeName);
+        infos.Add(info);
+        return info;
+    }
     private IEnumerable<Individual> GetNeighborhood(Individual individual, int radius)
     {
         return GetRegion(individual.X, individual.Y, radius)

@@ -1,10 +1,12 @@
+using System.Drawing;
+
 namespace TheGarden.Core;
 
 public class Individual
 {
     public int X { get; set; }
     public int Y { get; set; }
-
+    public required Color Color { get; set; }
     public required object Object { get; init; }
     public required IndividualInfo Info { get; init; }
 
