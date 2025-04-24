@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+    <PackageVersion>1.1.1</PackageVersion>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 

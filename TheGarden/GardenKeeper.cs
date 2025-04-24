@@ -37,6 +37,16 @@ public class Gardenkeeper(Garden garden, Individual current)
         );
     }
 
+    public void CreateEntityOnNeighborhood(string entity, int dx, int dy)
+    {
+        garden.Add(
+            entity,
+            Color.Black,
+            individual.X + dx,
+            individual.Y + dy
+        );
+    }
+
     public bool KillEntityOnNeighborhood(string entity, int vision = 5)
     {
         return garden.KillNeighborhood(

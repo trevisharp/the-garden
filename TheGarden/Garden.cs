@@ -18,6 +18,7 @@ public class Garden
     float camdx = 0;
     float camdy = 0;
     float camzoom = 15;
+    Color background = Color.DarkGreen;
 
     public Garden()
     {
@@ -25,6 +26,11 @@ public class Garden
         board = new List<Individual>[defaultSize * defaultSize];
         for (int i = 0; i < board.Length; i++)
             board[i] = [];
+    }
+
+    public void Add(string typeName, Color color)
+    {
+        GetInfo(typeName, color);
     }
 
     public void Add(string typeName, Color color, int x, int y)
@@ -48,6 +54,9 @@ public class Garden
         for (int i = 0; i < board.Length; i++)
             Add(info, i % defaultSize, i / defaultSize);
     }
+
+    public void ChangeColor(Color color)
+        => background = color;
 
     public void Run()
     {
@@ -127,6 +136,12 @@ public class Garden
 
         Window.OnRender += () =>
         {
+            var backcolor = vec(
+                background.R / 255f,
+                background.G / 255f,
+                background.B / 255f,
+                background.A / 255f
+            );
             for (int y = 0; y < defaultSize; y++)
             {
                 for (int x = 0; x < defaultSize; x++)
@@ -135,7 +150,7 @@ public class Garden
                     if (list.Count == 0)
                     {
                         fieldRender(
-                            vec(0f, .25f, 0f, 1f), 
+                            backcolor, 
                             camdx + camzoom * x,
                             camdy + camzoom * y,
                             camzoom
@@ -160,6 +175,15 @@ public class Garden
 
         Window.CloseOn(Input.Escape);
         Window.Open();
+    }
+
+    internal void AddOn(string typeName, int x, int y)
+    {
+        var info = infos.FirstOrDefault(i => i.Name == typeName);
+        if (info is null)
+            return;
+        
+        Add(info, x, y);
     }
 
     internal void AddOnRegion(string typeName, int x, int y, int radius)
@@ -214,6 +238,9 @@ public class Garden
 
     internal void Add(IndividualInfo info, int x, int y)
     {
+        if (x < 0 || x >= defaultSize || y < 0 || y >= defaultSize)
+            return;
+        
         var individual = info.Create();
 
         individual.X = x;
@@ -262,6 +289,7 @@ public class Garden
         infos.Add(info);
         return info;
     }
+    
     private IEnumerable<Individual> GetNeighborhood(Individual individual, int radius)
     {
         return GetRegion(individual.X, individual.Y, radius)
